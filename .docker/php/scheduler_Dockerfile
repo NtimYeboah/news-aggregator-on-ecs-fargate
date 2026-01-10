@@ -1,0 +1,70 @@
+# Install composer dependencies
+
+FROM composer:latest AS composer-build
+
+WORKDIR /var/www/html
+
+COPY composer.json composer.lock /var/www/html/
+
+RUN mkdir -p /var/www/html/database/{factories, seeds} \
+    && composer install --no-dev --prefer-dist --no-scripts --no-autoloader --no-progress --ignore-platform-reqs
+
+
+# Install NPM dependencies
+
+FROM node:24-slim AS npm-build
+
+WORKDIR /var/www/html/
+
+RUN apt-get update && apt-get upgrade -y
+
+COPY package.json package-lock.json tailwind.config.js postcss.config.js vite.config.js /var/www/html/
+COPY resources /var/www/html/resources/
+COPY public /var/www/html/public/
+
+RUN npm ci
+RUN npm run build
+
+
+# Production setup
+
+FROM php:8.2-fpm
+
+WORKDIR /var/www/html
+
+RUN apt-get update \
+    && apt-get install -y \
+        libzip-dev \
+        unzip \
+    && docker-php-ext-install pcntl opcache zip pdo pdo_mysql \
+    && pecl install redis-5.3.7 \
+    && docker-php-ext-enable redis
+
+COPY --from=composer /usr/bin/composer /usr/bin/composer
+
+COPY --chown=www-data --from=composer-build /var/www/html/vendor/ /var/www/html/vendor/
+COPY --chown=www-data --from=npm-build /var/www/html/public/ /var/www/html/public/
+COPY --chown=www-data . /var/www/html/
+
+# Check these from the PHP image docker hub page
+# Use default production configuration
+RUN mv $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini
+
+# Set custom opcache settings
+# Learn more about configuring opcache:
+# https://laravel-news.com/php-opcache-docker
+# https://www.scalingphpbook.com/
+# https://tideways.com/profiler/blog/fine-tune-your-opcache-configuration-to-avoid-caching-suprises
+COPY .docker/php/opcache.ini $PHP_INI_DIR/conf.d/
+
+RUN composer dump -o \
+    && composer check-platform-reqs \
+    && rm -f /usr/bin/composer
+
+# Copy entrypoint script
+COPY .docker/php/scheduler_entrypoint /usr/local/bin/php-entrypoint
+
+# Give permissions to the everything in bin/ dir
+RUN chmod a+x /usr/local/bin/php-entrypoint
+
+ENTRYPOINT ["/usr/local/bin/php-entrypoint"]

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -e
+
+chmod a+x ./artisan
+./artisan schedule:work
+
+exec "$@"

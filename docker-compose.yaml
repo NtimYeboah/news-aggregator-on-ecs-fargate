@@ -1,0 +1,72 @@
+version: '3'
+
+services:
+
+  web:
+    image: nginx-on-ecs-fargate:latest
+    depends_on:
+      - php
+    ports:
+      - "80:80"
+
+  php:
+    image: php-web-on-ecs-fargate:latest
+    depends_on:
+      - scheduler
+    environment:
+      APP_DEBUG: "true"
+      APP_KEY: "base64:OmeNQb93Sjgj2EohGa/wzWYW78zfzbrg4Qe7JOzGvAY="
+      APP_ENV: "local"
+      DB_CONNECTION: "mysql"
+      DB_HOST: "news-aggregator-db.cnquq2yq05v9.us-east-1.rds.amazonaws.com"
+      DB_PORT: "3306"
+      DB_USERNAME: "admin"
+      DB_PASSWORD: "Carolcitycartel1991" 
+      DB_DATABASE: "news_aggregator"
+      LOG_CHANNEL: "stack"
+      LOG_STACK: "single"
+      LOG_DEPRECATIONS_CHANNEL: "null"
+      LOG_LEVEL: "debug"
+      CACHE_STORE: "database"
+      CACHE_PREFIX: ""
+
+  worker:
+    image: php-worker-on-ecs-fargate:latest
+    environment:
+      APP_DEBUG: "true"
+      APP_KEY: "base64:OmeNQb93Sjgj2EohGa/wzWYW78zfzbrg4Qe7JOzGvAY="
+      APP_ENV: "local"
+      DB_CONNECTION: "mysql"
+      DB_HOST: "news-aggregator-db.cnquq2yq05v9.us-east-1.rds.amazonaws.com"
+      DB_PORT: "3306"
+      DB_USERNAME: "admin"
+      DB_PASSWORD: "Carolcitycartel1991" 
+      DB_DATABASE: "news_aggregator"
+      LOG_CHANNEL: "stack"
+      LOG_STACK: "single"
+      LOG_DEPRECATIONS_CHANNEL: "null"
+      LOG_LEVEL: "debug"
+      QUEUE_CONNECTION: "database"
+      CACHE_STORE: "database"
+      CACHE_PREFIX: ""
+      NEWS_RETRIEVAL_INTERVAL_MINUTES: "1440"
+      NEWSAPI_APIKEY: "81d75655bcba47e791b26988cffc24de"
+      NEWSAPI_ENDPOINT: "https://newsapi.org/v2/everything"
+      GUARDIANAPI_APIKEY: "f444c18a-1d6e-4dd1-a235-72f535209ce7"
+      GUARDIANAPI_ENDPOINT: "https://content.guardianapis.com/search"
+      NEWYORKTIMES_APIKEY: "DAYGS3gqbd6YIXOGc50nQXOXZS6w3Wnq"
+      NEWYORKTIMES_ENDPOINT: "https://api.nytimes.com/svc/search/v2/articlesearch.json"
+
+  scheduler:
+    image: php-scheduler-on-ecs-fargate:latest
+    depends_on:
+      - worker
+    environment:
+      APP_DEBUG: "true"
+      APP_KEY: "base64:OmeNQb93Sjgj2EohGa/wzWYW78zfzbrg4Qe7JOzGvAY="
+      APP_ENV: "local"
+      LOG_CHANNEL: "stack"
+      LOG_STACK: "single"
+      LOG_DEPRECATIONS_CHANNEL: "null"
+      LOG_LEVEL: "debug"
+      QUEUE_CONNECTION: "database"

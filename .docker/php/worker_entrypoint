@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -e
+
+chmod a+x ./artisan
+./artisan make:queue-table
+./artisan make:cache-table
+./artisan migrate
+./artisan queue:work
+
+exec "$@"

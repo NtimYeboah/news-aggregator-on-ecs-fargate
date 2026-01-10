@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-nodeport-service
+spec:
+  type: NodePort
+  selector:
+    app: web # This should match the label of your Nginx pod(s)
+  ports:
+  - protocol: TCP
+    port: 80 # The port the Service exposes internally
+    targetPort: 80 # The port your Nginx container is listening on
+    nodePort: 30000 # Optional: Specify a nodePort between 30000-32767. If omitted, Kubernetes assigns one.

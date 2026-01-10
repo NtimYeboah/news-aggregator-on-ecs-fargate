@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -e
+
+chmod a+x ./artisan
+./artisan optimize:clear
+./artisan optimize
+
+exec "$@"
